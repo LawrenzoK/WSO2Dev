@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/apiserver/rest/default/salesorderfeasibilityprocessapi" name="SalesOrderFeasibility" version="v1" version-type="url" xmlns="http://ws.apache.org/ns/synapse">
+    <resource faultSequence="ErrorHandler_SQ" methods="POST" uri-template="/conductfeasibility">
+        <inSequence>
+            <log description="AUDIT_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_ENTRY"/>
+            </log>
+            <propertyGroup>
+                <property expression="json-eval($.salesOrderId)" name="salesOrderId" scope="default" type="STRING"/>
+                <property expression="$url:accessToken" name="accessToken" scope="default" type="STRING"/>
+            </propertyGroup>
+            <filter regex="false" source="boolean($ctx:salesOrderId)">
+                <then>
+                    <payloadFactory description="Invalid Request" media-type="json">
+                        <format>{"errorCode" : "400","errorMessage": "salesOrderId is required"}</format>
+                        <args/>
+                    </payloadFactory>
+                    <log description="AUDIT_ERROR" level="custom" separator=",">
+                        <property expression="json-eval($)" name="AUDIT_ERROR"/>
+                    </log>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="400"/>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <filter description="check if access token passed as a parameter in the url" regex="false" source="boolean($ctx:accessToken)">
+                <then>
+                    <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                        <property name="AUDIT_TEMP_EXIT" value="***INVOKING TELFLOW AUTHORIZATION TOKEN***"/>
+                    </log>
+                    <property expression="get-property('file', 'TELFLOW_AUTHORIZATION_TOKEN_PROXY_EP')" name="uri.var.telflowAuthorizationTokenProxyEP" scope="default" type="STRING"/>
+                    <call>
+                        <endpoint>
+                            <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowAuthorizationTokenProxyEP}">
+                                <suspendOnFailure>
+                                    <errorCodes>-1</errorCodes>
+                                    <initialDuration>-1</initialDuration>
+                                    <progressionFactor>-1</progressionFactor>
+                                    <maximumDuration>0</maximumDuration>
+                                </suspendOnFailure>
+                                <markForSuspension>
+                                    <errorCodes>-1</errorCodes>
+                                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                </markForSuspension>
+                            </http>
+                        </endpoint>
+                    </call>
+                    <log description="AUDIT_REENTRY" level="custom" separator=",">
+                        <property name="AUDIT_REENTRY" value="***TELFLOW AUTHORIZATION TOKEN COMPLETED***"/>
+                    </log>
+                    <property expression="json-eval($.access_token)" name="accessToken" scope="default" type="STRING"/>
+                </then>
+                <else/>
+            </filter>
+            <property expression="get-property('file', 'TELFLOW_GETSALESORDERSRELATIONSHIP_PROXY_EP')" name="telflowGetSalesOrdersRelationshipProxyEP" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:telflowGetSalesOrdersRelationshipProxyEP,'?salesOrderId=',$ctx:salesOrderId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflowGetSalesOrdersRelationshipProxyURL" scope="default" type="STRING"/>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property name="AUDIT_TEMP_EXIT" value="*****INVOKING TELFLOW GET SALES ORDER RELATIONSHIP PROXY *****"/>
+                <property expression="$ctx:uri.var.telflowGetSalesOrdersRelationshipProxyURL" name="URL_ENDPOINT"/>
+            </log>
+            <call description="Telflow Get Sales Order Relationship Proxy">
+                <endpoint>
+                    <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowGetSalesOrdersRelationshipProxyURL}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_REENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_REENTRY"/>
+            </log>
+            <property expression="json-eval($.payload.businessInteractions[0].id)" name="customerOrderId" scope="default" type="STRING"/>
+            <filter regex="true" source="boolean($ctx:customerOrderId)">
+                <then/>
+                <else>
+                    <property expression="json-eval($.errorCode)" name="error" scope="default" type="STRING"/>
+                    <filter regex="true" source="boolean($ctx:error)">
+                        <then>
+                            <payloadFactory description="error mapping" media-type="json">
+                                <format>{ "errorCode": "$1" , "errorMessage": "$2" }</format>
+                                <args>
+                                    <arg evaluator="json" expression="$.errorCode"/>
+                                    <arg evaluator="json" expression="$.errorMessage"/>
+                                </args>
+                            </payloadFactory>
+                        </then>
+                        <else>
+                            <payloadFactory description="error mapping" media-type="json">
+                                <format>{ "errorCode": 400 , "errorMessage": "Error retrieving customer order details for orderId $1" }</format>
+                                <args>
+                                    <arg evaluator="json" expression="$ctx:customerOrderId"/>
+                                </args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
+                    <respond/>
+                </else>
+            </filter>
+            <property expression="json-eval($.payload.businessInteractions[0].interactionStatus.id)" name="interactionStatus" scope="default" type="STRING"/>
+            <filter regex="Augment" source="$ctx:interactionStatus">
+                <then/>
+                <else>
+                    <propertyGroup>
+                        <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+                        <property expression="get-property('file', 'TELFLOW_UPDATECUSTOMERORDERS_PROXY_EP')" name="telflowUpdateCustomerOrdersProxyEP" scope="default" type="STRING"/>
+                        <property expression="fn:concat($ctx:telflowUpdateCustomerOrdersProxyEP,'?customerOrderId=', $ctx:customerOrderId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflowUpdateCustomerOrdersProxyEPURL" scope="default" type="STRING"/>
+                    </propertyGroup>
+                    <payloadFactory description="update customer order mapping" media-type="json">
+                        <format>{"interactionStatus": {"id": "Feasibility","type": "Pipeline"}}</format>
+                        <args/>
+                    </payloadFactory>
+                    <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                        <property expression="json-eval($)" name="AUDIT_TEMP_EXIT"/>
+                    </log>
+                    <call description="Telflow Update Customer Order">
+                        <endpoint>
+                            <http method="post" statistics="enable" trace="enable" uri-template="{uri.var.telflowUpdateCustomerOrdersProxyEPURL}">
+                                <suspendOnFailure>
+                                    <errorCodes>-1</errorCodes>
+                                    <initialDuration>-1</initialDuration>
+                                    <progressionFactor>-1</progressionFactor>
+                                    <maximumDuration>0</maximumDuration>
+                                </suspendOnFailure>
+                                <markForSuspension>
+                                    <errorCodes>-1</errorCodes>
+                                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                </markForSuspension>
+                            </http>
+                        </endpoint>
+                    </call>
+                    <log description="AUDIT_REENTRY" level="custom" separator=",">
+                        <property expression="json-eval($)" name="AUDIT_REENTRY"/>
+                    </log>
+                    <property expression="json-eval($.errorCode)" name="error" scope="default" type="STRING"/>
+                </else>
+            </filter>
+            <filter regex="false" source="boolean($ctx:error)">
+                <then/>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": "$1", "errorMessage": "$2" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$.errorCode"/>
+                            <arg evaluator="json" expression="$.errorMessage"/>
+                        </args>
+                    </payloadFactory>
+                    <respond/>
+                </else>
+            </filter>
+            <propertyGroup>
+                <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+                <property expression="get-property('file', 'TELFLOW_UPDATESALESORDERS_PROXY_EP')" name="telflowUpdateSalesOrdersProxyEP" scope="default" type="STRING"/>
+                <property expression="fn:concat($ctx:telflowUpdateSalesOrdersProxyEP,'?salesOrderId=', $ctx:salesOrderId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflowUpdateSalesOrdersProxyEPURL" scope="default" type="STRING"/>
+            </propertyGroup>
+            <payloadFactory description="error mapping" media-type="json">
+                <format>{"interactionStatus": {"id": "Feasibility","type": "Pipeline"}}</format>
+                <args/>
+            </payloadFactory>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_TEMP_EXIT"/>
+            </log>
+            <call description="Telflow Update Sales Order">
+                <endpoint>
+                    <http method="post" statistics="enable" trace="enable" uri-template="{uri.var.telflowUpdateSalesOrdersProxyEPURL}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_REENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_REENTRY"/>
+            </log>
+            <property expression="json-eval($.errorCode)" name="error" scope="default" type="STRING"/>
+            <filter regex="false" source="boolean($ctx:error)">
+                <then>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": "200", "errorMessage": "Successfully progressed the Sales Order $1 to Feasible" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$ctx:salesOrderId"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": "$1", "errorMessage": "$2" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$.errorCode"/>
+                            <arg evaluator="json" expression="$.errorMessage"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <log description="AUDIT_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_EXIT"/>
+            </log>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+    </resource>
+</api>

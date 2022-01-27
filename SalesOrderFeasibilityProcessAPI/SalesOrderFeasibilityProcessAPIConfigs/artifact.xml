@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?><artifacts>
+    <artifact name="SalesOrderFeasibility_v1" groupId="za.co.dfafrica.apigateway.api" version="v1" type="synapse/api" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/api/SalesOrderFeasibility_v1.xml</file>
+    </artifact>
+    <artifact name="SalesOrderFeasibility_v1_swagger" groupId="za.co.dfafrica.apigateway.metadata" version="v1" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/SalesOrderFeasibility_v1_swagger.yaml</file>
+    </artifact>
+    <artifact name="SalesOrderFeasibility_v1_metadata" groupId="za.co.dfafrica.apigateway.metadata" version="v1" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/SalesOrderFeasibility_v1_metadata.yaml</file>
+    </artifact>
+    <artifact name="ErrorHandler_SQ" groupId="za.co.dfafrica.apigateway.sequence" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/sequences/ErrorHandler_SQ.xml</file>
+    </artifact>
+</artifacts>

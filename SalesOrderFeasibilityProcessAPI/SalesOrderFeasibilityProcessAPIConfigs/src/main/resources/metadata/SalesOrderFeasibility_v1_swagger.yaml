@@ -1,0 +1,23 @@
+openapi: 3.0.1
+info:
+  title: SalesOrderFeasibility
+  description: API Definition of SalesOrderFeasibility
+  version: v1
+servers:
+- url: http://localhost:8290/apiserver/rest/default/salesorderfeasibilityprocessapi/v1
+paths:
+  /conductfeasibility:
+    post:
+      requestBody:
+        description: Sample Payload
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload:
+                  type: object
+        required: false
+      responses:
+        default:
+          description: Default response
