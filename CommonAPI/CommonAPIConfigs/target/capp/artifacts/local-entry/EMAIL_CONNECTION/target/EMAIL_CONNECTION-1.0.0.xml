@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localEntry key="EMAIL_CONNECTION" xmlns="http://ws.apache.org/ns/synapse">
+    <email.init>
+        <requireAuthentication>false</requireAuthentication>
+        <connectionType>SMTP</connectionType>
+        <host>dfafrica-co-za.mail.protection.outlook.com</host>
+        <port>25</port>
+        <name>EMAIL_CONNECTION</name>
+    </email.init>
+</localEntry>

@@ -1,0 +1,13 @@
+openapi: 3.0.1
+info:
+  title: sendEmail
+  description: API Definition of sendEmail
+  version: v1
+servers:
+- url: http://localhost:8290/APIServer/rest/default/commonapi/v1
+paths:
+  /:
+    post:
+      responses:
+        default:
+          description: Default response

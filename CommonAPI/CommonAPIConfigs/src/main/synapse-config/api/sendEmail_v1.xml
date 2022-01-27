@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/APIServer/rest/default/commonapi" name="sendEmail" version="v1" version-type="url" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST">
+        <inSequence>
+            <log description="AUDIT_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_ENTRY"/>
+            </log>
+            <property expression="json-eval($.mailFrom)" name="mailFromAddress" scope="default" type="STRING"/>
+            <filter regex="false" source="boolean($ctx:mailFromAddress)">
+                <then>
+                    <property name="mailFromAddress" scope="default" type="STRING" value="apigateway@dfafrica.co.za"/>
+                </then>
+                <else/>
+            </filter>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_TEMP_EXIT"/>
+                <property expression="$ctx:mailFromAddress" name="FROM ADDRESS"/>
+            </log>
+            <email.send configKey="EMAIL_CONNECTION">
+                <from>{$ctx:mailFromAddress}</from>
+                <to>{json-eval($.mailTo)}</to>
+                <cc>{json-eval($.mailCC)}</cc>
+                <subject>{json-eval($.mailSubject)}</subject>
+                <content>{json-eval($.mailBody)}</content>
+                <attachments>{json-eval($.attachments)}</attachments>
+            </email.send>
+            <payloadFactory description="Response Mapping" media-type="json">
+                <format>{
+"errorCode":0,
+"errorMessage": "successfully submitted email"
+}</format>
+                <args/>
+            </payloadFactory>
+            <log description="AUDIT_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_EXIT"/>
+            </log>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <log description="" level="custom">
+                <property expression="$ctx:ERROR_CODE" name="Error"/>
+                <property expression="$ctx:ERROR_MESSAGE" name="MSG"/>
+                <property expression="$ctx:ERROR_DETAIL" name="Trace"/>
+                <property expression="$ctx:ERROR_EXCEPTION" name="exception"/>
+            </log>
+            <switch description="" source="get-property('ERROR_CODE')">
+                <case regex="101503">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="404"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection cannot be made"/>
+                </case>
+                <case regex="101504">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="408"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection timed out into suspension"/>
+                </case>
+                <default>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error': Generic fault handler, code not specified"/>
+                </default>
+            </switch>
+            <payloadFactory media-type="json">
+                <format>{ 
+    "errorCode":"$1",
+    "errorMessage" : "$2",
+    "errorDetail" : "$3"
+}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_CODE')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_EXCEPTION')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </resource>
+</api>

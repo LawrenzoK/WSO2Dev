@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?><artifacts>
+    <artifact name="sendEmail_v1" groupId="za.co.dfa.apigateway.api" version="v1" type="synapse/api" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/api/sendEmail_v1.xml</file>
+    </artifact>
+    <artifact name="sendEmail_v1_swagger" groupId="za.co.dfa.apigateway.metadata" version="v1" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/sendEmail_v1_swagger.yaml</file>
+    </artifact>
+    <artifact name="sendEmail_v1_metadata" groupId="za.co.dfa.apigateway.metadata" version="v1" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/sendEmail_v1_metadata.yaml</file>
+    </artifact>
+    <artifact name="EMAIL_CONNECTION" groupId="za.co.dfa.apigateway.local-entry" version="1.0.0" type="synapse/local-entry" serverRole="EnterpriseServiceBus">
+        <file>/src/main/synapse-config/local-entries/EMAIL_CONNECTION.xml</file>
+    </artifact>
+    <artifact name="SalesForce_CommonAPI_1.0" groupId="za.co.dfa.apigateway.api" version="1.0" type="synapse/api" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/api/SalesForce_CommonAPI_1.0.xml</file>
+    </artifact>
+    <artifact name="SharePoint_CommonAPI_1.0_swagger" groupId="za.co.dfa.apigateway.metadata" version="1.0" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/SharePoint_CommonAPI_1.0_swagger.yaml</file>
+    </artifact>
+    <artifact name="SharePoint_CommonAPI_1.0_metadata" groupId="za.co.dfa.apigateway.metadata" version="1.0" type="synapse/metadata" serverRole="EnterpriseServiceBus">
+        <file>src/main/resources/metadata/SharePoint_CommonAPI_1.0_metadata.yaml</file>
+    </artifact>
+    <artifact name="ErrorHandler_SQ" groupId="za.co.dfa.apigateway.sequence" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/sequences/ErrorHandler_SQ.xml</file>
+    </artifact>
+</artifacts>
