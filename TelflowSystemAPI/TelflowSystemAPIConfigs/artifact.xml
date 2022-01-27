@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><artifacts>
+    <artifact name="telflowAuthorizationTokenEndpoint" groupId="za.co.dfafrica.apigateway.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/telflowAuthorizationTokenEndpoint.xml</file>
+    </artifact>
+    <artifact name="telflowAuthorizationTokenProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowAuthorizationTokenProxy.xml</file>
+    </artifact>
+    <artifact name="telflowInventoryEndPoint" groupId="za.co.dfafrica.apigateway.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/telflowInventoryEndPoint.xml</file>
+    </artifact>
+    <artifact name="telflowCustomerOrderEndPoint" groupId="za.co.dfafrica.apigateway.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/telflowCustomerOrderEndPoint.xml</file>
+    </artifact>
+    <artifact name="telflowOfferingsEndPoint" groupId="za.co.dfafrica.apigateway.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/telflowOfferingsEndPoint.xml</file>
+    </artifact>
+    <artifact name="telflowGetInventoryProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetInventoryProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetCustomerStatusProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetCustomerStatusProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetCustomerOrdersProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetCustomerOrdersProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetTaskDetailsProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetTaskDetailsProxy.xml</file>
+    </artifact>
+    <artifact name="telflowUpdateTaskProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowUpdateTaskProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetPartyProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetPartyProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetOfferingsProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetOfferingsProxy.xml</file>
+    </artifact>
+    <artifact name="telflowCompleteTaskProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowCompleteTaskProxy.xml</file>
+    </artifact>
+    <artifact name="completeTaskAPI_v1" groupId="za.co.dfafrica.apigateway.api" version="v1" type="synapse/api" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/api/completeTaskAPI_v1.xml</file>
+    </artifact>
+    <artifact name="telflowUpdateSalesOrdersProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowUpdateSalesOrdersProxy.xml</file>
+    </artifact>
+    <artifact name="telflowUpdateCustomerOrdersProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowUpdateCustomerOrdersProxy.xml</file>
+    </artifact>
+    <artifact name="telflowGetSalesOrdersRelationshipProxy" groupId="za.co.dfafrica.apigateway.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/telflowGetSalesOrdersRelationshipProxy.xml</file>
+    </artifact>
+</artifacts>

@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/apiserver/rest/default/taskmanagement" name="completeTaskAPI" version="v1" version-type="url" xmlns="http://ws.apache.org/ns/synapse">
+    <resource faultSequence="ErrorHandler_SQ" methods="POST" url-mapping="/completetask">
+        <inSequence>
+            <log description="AUDIT_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_ENTRY"/>
+            </log>
+            <propertyGroup>
+                <property expression="json-eval($.customerOrderId)" name="customerOrderId" scope="default" type="STRING"/>
+                <property expression="json-eval($.inventoryId)" name="inventoryId" scope="default" type="STRING"/>
+                <property expression="json-eval($.searchKeyString)" name="searchKeyString" scope="default" type="STRING"/>
+                <property expression="json-eval($.taskToAction)" name="taskToAction" scope="default" type="STRING"/>
+                <property expression="json-eval($.classification)" name="classification" scope="default" type="STRING"/>
+                <property expression="json-eval($.reason)" name="reason" scope="default" type="STRING"/>
+                <property expression="json-eval($.accessToken)" name="accessToken" scope="default" type="STRING"/>
+            </propertyGroup>
+            <filter regex="true" source="boolean($ctx:customerOrderId)">
+                <then>
+                    <property expression="fn:concat('?customerOrderId=', $ctx:customerOrderId,'&amp;')" name="customer_order_param" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property expression="fn:concat('?inventoryId=', $ctx:inventoryId,'&amp;')" name="customer_order_param" scope="default" type="STRING"/>
+                </else>
+            </filter>
+            <filter regex="false" source="boolean($ctx:customer_order_param)">
+                <then>
+                    <payloadFactory description="Invalid Request" media-type="json">
+                        <format>{"errorCode" : "400","errorMessage": "customerOrderId or inventoryId is required"}</format>
+                        <args/>
+                    </payloadFactory>
+                    <log description="AUDIT_ERROR" level="custom" separator=",">
+                        <property expression="json-eval($)" name="AUDIT_ERROR"/>
+                    </log>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="400"/>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <filter description="check if access token passed as a parameter in the url" regex="false" source="boolean($ctx:accessToken)">
+                <then>
+                    <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                        <property name="AUDIT_TEMP_EXIT" value="***INVOKING TELFLOW AUTHORIZATION TOKEN***"/>
+                    </log>
+                    <property expression="get-property('file', 'TELFLOW_AUTHORIZATION_TOKEN_PROXY_EP')" name="uri.var.telflowAuthorizationTokenProxyEP" scope="default" type="STRING"/>
+                    <call>
+                        <endpoint>
+                            <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowAuthorizationTokenProxyEP}">
+                                <suspendOnFailure>
+                                    <errorCodes>-1</errorCodes>
+                                    <initialDuration>-1</initialDuration>
+                                    <progressionFactor>-1</progressionFactor>
+                                    <maximumDuration>0</maximumDuration>
+                                </suspendOnFailure>
+                                <markForSuspension>
+                                    <errorCodes>-1</errorCodes>
+                                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                </markForSuspension>
+                            </http>
+                        </endpoint>
+                    </call>
+                    <log description="AUDIT_REENTRY" level="custom" separator=",">
+                        <property name="AUDIT_REENTRY" value="***TELFLOW AUTHORIZATION TOKEN COMPLETED***"/>
+                    </log>
+                    <property expression="json-eval($.access_token)" name="accessToken" scope="default" type="STRING"/>
+                </then>
+                <else/>
+            </filter>
+            <property expression="get-property('file', 'TELFLOW_GET_CUSTOMER_ORDER_PROXY_EP')" name="telflowGetCustomerOrderProxyEP" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:telflowGetCustomerOrderProxyEP,$ctx:customer_order_param, 'accessToken=', $ctx:accessToken)" name="uri.var.telflowGetCustomerOrderProxy_url" scope="default" type="STRING"/>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property name="AUDIT_TEMP_EXIT" value="*****INVOKING TELFLOW GET CUSTOMER ORDER PROXY *****"/>
+                <property expression="$ctx:uri.var.telflowGetCustomerOrderProxy_url" name="GET_CUSTOMER_ORDER_PROXY_URL_ENDPOINT"/>
+            </log>
+            <call description="Telflow Get Customer Order Proxy">
+                <endpoint>
+                    <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowGetCustomerOrderProxy_url}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_REENTRY_CUSTOMER_ORDER_RESPONSE" level="custom" separator=",">
+                <property name="AUDIT_REENTRY" value="***** AUDIT REENTRY TELFLOW GET CUSTOMER ORDER COMPLETED *****"/>
+            </log>
+            <filter regex="true" source="boolean($ctx:customerOrderId)">
+                <then>
+                    <property description="OrderId" expression="$ctx:customerOrderId" name="orderId" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property description="OrderId" expression="json-eval($.customerOrders[0].id)" name="orderId" scope="default" type="STRING"/>
+                </else>
+            </filter>
+            <filter regex="true" source="boolean($ctx:orderId)">
+                <then/>
+                <else>
+                    <property expression="json-eval($.errorCode)" name="error" scope="default" type="STRING"/>
+                    <filter regex="true" source="boolean($ctx:error)">
+                        <then>
+                            <payloadFactory description="error mapping" media-type="json">
+                                <format>{ "errorCode": 500 , "errorMessage": "$1" }</format>
+                                <args>
+                                    <arg evaluator="json" expression="$.errorDetail"/>
+                                </args>
+                            </payloadFactory>
+                        </then>
+                        <else>
+                            <payloadFactory description="error mapping" media-type="json">
+                                <format>{ "errorCode": 400 , "errorMessage": "Error retrieving customer order details for orderId $1" }</format>
+                                <args>
+                                    <arg evaluator="json" expression="$ctx:orderId"/>
+                                </args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
+                    <respond/>
+                </else>
+            </filter>
+            <propertyGroup>
+                <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+                <property expression="get-property('file', 'TELFLOW_API_USER_PARTY_ID')" name="telflowPartyId" scope="default" type="STRING"/>
+                <property expression="get-property('file', 'TELFLOW_GET_PARTY_PROXY_EP')" name="telflowGetPartyProxyEP" scope="default" type="STRING"/>
+                <property expression="fn:concat($ctx:telflowGetPartyProxyEP,'?partyId=', $ctx:telflowPartyId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflowGetPartyProxy_url" scope="default" type="STRING"/>
+            </propertyGroup>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_TEMP_EXIT"/>
+            </log>
+            <call description="Telflow Get Party Proxy">
+                <endpoint>
+                    <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowGetPartyProxy_url}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_REENTRY_TELFOW_PARTY_RESPONSE" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_REENTRY"/>
+            </log>
+            <property expression="json-eval($.payload.partyRoles[0].id)" name="telflowPartyRoleSubmitterId" scope="default" type="STRING"/>
+            <property expression="json-eval($.errorCode)" name="error" scope="default" type="STRING"/>
+            <filter regex="false" source="boolean($ctx:error)">
+                <then/>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": "$1", "errorMessage": "$2" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$.errorCode"/>
+                            <arg evaluator="json" expression="$.errorMessage"/>
+                        </args>
+                    </payloadFactory>
+                    <respond/>
+                </else>
+            </filter>
+            <enrich>
+                <source clone="false" type="body"/>
+                <target property="partyRoleAssignedPayload" type="property"/>
+            </enrich>
+            <log description="partyRoleAssignedPayload" level="custom" separator=",">
+                <property expression="$ctx:partyRoleAssignedPayload" name="partyRoleAssignedPayload"/>
+            </log>
+            <property description="TaskEP" expression="get-property('file', 'TELFLOW_GET_TASKS_PROXY_EP')" name="telflowTaskProxyEP" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:telflowTaskProxyEP,'?orderId=', $ctx:orderId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflow_task_url" scope="default" type="STRING"/>
+            <log description="AUDIT_TEMPEXIT" level="custom" separator=",">
+                <property expression="$ctx:uri.var.telflow_task_url" name="URL_ENDPOINT"/>
+                <property expression="json-eval($)" name="AUDIT_TEMPEXIT"/>
+            </log>
+            <call>
+                <endpoint>
+                    <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflow_task_url}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_RE_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_RE_ENTRY"/>
+            </log>
+            <propertyGroup>
+                <property name="taskId" scope="default" type="STRING" value=""/>
+                <property name="taskName" scope="default" type="STRING" value=""/>
+            </propertyGroup>
+            <script language="js"><![CDATA[var tasksPayload = mc.getPayloadJSON();	
+            var log = mc.getServiceLog();		
+            log.info('tasksPayload : '+JSON.stringify(tasksPayload));		
+			if(JSON.stringify(tasksPayload.payload.tasks) !=null && tasksPayload.payload.tasks.length>0){
+				var tasks = tasksPayload.payload.tasks;
+				var searchKeyString = mc.getProperty("searchKeyString"); 
+				log.info('searchKeyString : '+searchKeyString);
+				var taskName ="";
+				for ( i = 0; i < tasks.length; i++) {	
+					taskName = tasks[i].name;
+					if(tasks[i].status == "Pending" && taskName.indexOf(searchKeyString) > -1 ){
+						log.info('taskId : '+tasks[i].id);
+						log.info('taskName : '+taskName);
+						mc.setProperty('taskId',tasks[i].id);
+						mc.setProperty('taskName',taskName);
+						break;
+					}
+				}
+			}]]></script>
+            <filter regex="true" source="boolean($ctx:taskId) and boolean($ctx:taskId != &quot;&quot;)">
+                <then/>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": 400 , "errorMessage": "Unable to find a pending task which contains '$1' in the name for order id $2" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$ctx:searchKeyString"/>
+                            <arg evaluator="json" expression="$ctx:orderId"/>
+                        </args>
+                    </payloadFactory>
+                    <respond/>
+                </else>
+            </filter>
+            <property description="TaskEP" expression="get-property('file', 'TELFLOW_UPDATE_TASK_PROXY_EP')" name="telflowTaskProxyEP" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:telflowTaskProxyEP,'?taskId=', $ctx:taskId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflow_update_task_url" scope="default" type="STRING"/>
+            <payloadFactory description="Claim Task Request" media-type="json">
+                <format>
+            { "name": "$2", "involvesParties": [ { "type": "Assignee", "partyRole": { "id": "$3", "party": { "id": "$4", "name": "$5", "status": "Active", "users": [ { "userId": "$5", "authenticationSource": { "id": "active directory" } } ] }, "status": "Active"
+            } } ], "notes": [ { "id": "$1", "description": "Task claimed by $5.", "type": "Assigned" } ] }</format>
+                <args>
+                    <arg evaluator="json" expression="$ctx:taskId"/>
+                    <arg evaluator="json" expression="$ctx:taskName"/>
+                    <arg evaluator="json" expression="$ctx:partyRoleAssignedPayload.payload.partyRoles[0].id"/>
+                    <arg evaluator="json" expression="$ctx:partyRoleAssignedPayload.payload.id"/>
+                    <arg evaluator="json" expression="$ctx:partyRoleAssignedPayload.payload.name"/>
+                </args>
+            </payloadFactory>
+            <log description="AUDIT_TEMPEXIT" level="custom" separator=",">
+                <property expression="$ctx:uri.var.telflow_update_task_url" name="URL_ENDPOINT"/>
+                <property expression="json-eval($)" name="AUDIT_TEMPEXIT"/>
+            </log>
+            <call>
+                <endpoint>
+                    <http method="post" statistics="enable" trace="enable" uri-template="{uri.var.telflow_update_task_url}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_RE_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_RE_ENTRY"/>
+            </log>
+            <property expression="json-eval($.errorCode)" name="errorCode" scope="default" type="STRING"/>
+            <filter regex="false" source="boolean($ctx:errorCode)">
+                <then/>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{ "errorCode": "$1" , "errorMessage": "$2" }</format>
+                        <args>
+                            <arg evaluator="json" expression="$.errorCode"/>
+                            <arg evaluator="json" expression="$.errorMessage"/>
+                        </args>
+                    </payloadFactory>
+                    <respond/>
+                </else>
+            </filter>
+            <property description="TaskEP" expression="get-property('file', 'TELFLOW_COMPLETE_TASK_PROXY_EP')" name="telflowTaskProxyEP" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:telflowTaskProxyEP,'?taskId=', $ctx:taskId, '&amp;accessToken=', $ctx:accessToken)" name="uri.var.telflow_complete_task_url" scope="default" type="STRING"/>
+            <payloadFactory description="Claim Task Request" media-type="json">
+                <format>{ "describedBy":{ "action":"$1", "cancellationClassification":"$2", "customerCancellationReason":"$3" } }</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('taskToAction')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('classification')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('reason')" literal="true"/>
+                </args>
+            </payloadFactory>
+            <log description="AUDIT_TEMPEXIT" level="custom" separator=",">
+                <property expression="$ctx:uri.var.telflow_complete_task_url" name="URL_ENDPOINT"/>
+                <property expression="json-eval($)" name="AUDIT_TEMPEXIT"/>
+            </log>
+            <call>
+                <endpoint>
+                    <http method="post" statistics="enable" trace="enable" uri-template="{uri.var.telflow_complete_task_url}">
+                        <suspendOnFailure>
+                            <errorCodes>-1</errorCodes>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <errorCodes>-1</errorCodes>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+            <log description="AUDIT_RE_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_RE_ENTRY"/>
+            </log>
+            <log description="AUDIT_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_EXIT"/>
+            </log>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+    </resource>
+</api>

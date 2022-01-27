@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="telflowGetCustomerOrdersProxy" startOnLoad="true" statistics="enable" trace="enable" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <propertyGroup>
+                <property expression="$url:customerOrderId" name="customerOrderId" scope="default" type="STRING"/>
+                <property expression="$url:inventoryId" name="inventoryId" scope="default" type="STRING"/>
+                <property expression="$url:accessToken" name="accessToken" scope="default" type="STRING"/>
+            </propertyGroup>
+            <filter regex="true" source="boolean(get-property('customerOrderId'))">
+                <then>
+                    <property expression="fn:concat('/', $ctx:customerOrderId,'?')" name="customer_order_param" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property expression="fn:concat('?inventoryId=', $ctx:inventoryId,'&amp;')" name="customer_order_param" scope="default" type="STRING"/>
+                </else>
+            </filter>
+            <filter regex="false" source="boolean($ctx:customer_order_param)">
+                <then>
+                    <payloadFactory description="Invalid Request" media-type="json">
+                        <format>{
+"errorCode" : "400",
+"errorMessage": "customerOrderId or inventoryId is required"
+}
+</format>
+                        <args/>
+                    </payloadFactory>
+                    <log description="AUDIT_ERROR" level="custom" separator=",">
+                        <property expression="json-eval($)" name="AUDIT_ERROR"/>
+                    </log>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="400"/>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <filter description="check if access token passed as a parameter in the url" regex="false" source="boolean($ctx:accessToken)">
+                <then>
+                    <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                        <property name="AUDIT_TEMP_EXIT" value="***INVOKING TELFLOW AUTHORIZATION TOKEN***"/>
+                    </log>
+                    <property expression="get-property('file', 'TELFLOW_AUTHORIZATION_TOKEN_PROXY_EP')" name="uri.var.telflowAuthorizationTokenProxyEP" scope="default" type="STRING"/>
+                    <call>
+                        <endpoint>
+                            <http method="get" statistics="enable" trace="enable" uri-template="{uri.var.telflowAuthorizationTokenProxyEP}">
+                                <suspendOnFailure>
+                                    <errorCodes>-1</errorCodes>
+                                    <initialDuration>-1</initialDuration>
+                                    <progressionFactor>-1</progressionFactor>
+                                    <maximumDuration>0</maximumDuration>
+                                </suspendOnFailure>
+                                <markForSuspension>
+                                    <errorCodes>-1</errorCodes>
+                                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                                </markForSuspension>
+                            </http>
+                        </endpoint>
+                    </call>
+                    <log description="AUDIT_REENTRY" level="custom" separator=",">
+                        <property name="AUDIT_REENTRY" value="***TELFLOW AUTHORIZATION TOKEN COMPLETED***"/>
+                    </log>
+                    <property expression="json-eval($.access_token)" name="accessToken" scope="default" type="STRING"/>
+                </then>
+                <else/>
+            </filter>
+            <propertyGroup>
+                <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+                <property expression="get-property('file', 'TELFOW_CUSTOMER_ORDERS_EP')" name="telfowCustomerOrdersEP" scope="default" type="STRING"/>
+                <property expression="fn:concat($ctx:telfowCustomerOrdersEP,$ctx:customer_order_param)" name="uri.var.telflow_get_customer_order_url" scope="default" type="STRING"/>
+                <property expression="fn:concat('Bearer ',get-property('accessToken'))" name="Authorization" scope="transport" type="STRING"/>
+            </propertyGroup>
+            <log description="AUDIT_TEMP_EXIT" level="custom" separator=",">
+                <property name="AUDIT_TEMP_EXIT" value="***  INVOKING TELFLOW GET CUSTOMER ORDERS ***"/>
+                <property expression="$ctx:uri.var.telflow_get_customer_order_url" name="GET_CUSTOMER_ORDERS_URL_ENDPOINT"/>
+            </log>
+            <call>
+                <endpoint key="telflowCustomerOrderEndPoint"/>
+            </call>
+            <log description="AUDITREENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="*** AUDIT_REENTRY_GET_CUSTOMER_ORDERS_RESPONSE ****"/>
+            </log>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <log description="" level="custom">
+                <property expression="$ctx:ERROR_CODE" name="Error"/>
+                <property expression="$ctx:ERROR_MESSAGE" name="MSG"/>
+                <property expression="$ctx:ERROR_DETAIL" name="Trace"/>
+                <property expression="$ctx:ERROR_EXCEPTION" name="exception"/>
+            </log>
+            <switch description="" source="get-property('ERROR_CODE')">
+                <case regex="101503">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="404"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection cannot be made"/>
+                </case>
+                <case regex="101504">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="408"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection timed out into suspension"/>
+                </case>
+                <default>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error': Generic fault handler, code not specified"/>
+                </default>
+            </switch>
+            <payloadFactory media-type="json">
+                <format>{ 
+    "errorCode":"$1",
+    "errorMessage" : "$2",
+    "errorDetail" : "$3"
+}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_CODE')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_EXCEPTION')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>

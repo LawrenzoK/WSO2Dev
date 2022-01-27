@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="telflowAuthorizationTokenProxy" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log description="AUDIT_ENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_ENTRY"/>
+            </log>
+            <payloadFactory media-type="json">
+                <format>{
+    "client_id": "$1",
+    "username": "$2",
+    "password": "$3",
+    "client_secret": "$4",
+    "grant_type": "$5"
+  }</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('file', 'TELFOW_AUTHTOKEN_CLIENT_ID')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('file', 'TELFOW_AUTHTOKEN_USERNAME')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('file', 'TELFOW_AUTHTOKEN_PASSWORD')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('file', 'TELFOW_AUTHTOKEN_CLIENT_SECRET')" literal="true"/>
+                    <arg evaluator="xml" expression="get-property('file', 'TELFOW_AUTHTOKEN_GRANT_TYPE')" literal="true"/>
+                </args>
+            </payloadFactory>
+            <header name="Content-Type" scope="transport" value="application/x-www-form-urlencoded"/>
+            <property name="messageType" scope="axis2" type="STRING" value="application/x-www-form-urlencoded"/>
+            <log description="AUDIT_TEMPEXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_TEMPEXIT"/>
+            </log>
+            <call>
+                <endpoint key="telflowAuthorizationTokenEndpoint"/>
+            </call>
+            <log description="AUDIT_REENTRY" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_REENTRY"/>
+            </log>
+            <property expression="$axis2:HTTP_SC" name="statusCode" scope="default" type="STRING"/>
+            <property expression="json-eval($.error)" name="error" scope="default" type="STRING"/>
+            <filter regex="false" source="boolean($ctx:error)">
+                <then/>
+                <else>
+                    <payloadFactory description="Error Mapping" media-type="json">
+                        <format>{
+						"errorCode": "$1",
+						"errorMessage": "$2"
+						}</format>
+                        <args>
+                            <arg evaluator="json" expression="$ctx:statusCode"/>
+                            <arg evaluator="json" expression="$.error_description"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <log description="AUDIT_EXIT" level="custom" separator=",">
+                <property expression="json-eval($)" name="AUDIT_EXIT"/>
+            </log>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+            <log description="" level="custom">
+                <property expression="$ctx:ERROR_CODE" name="Error"/>
+                <property expression="$ctx:ERROR_MESSAGE" name="MSG"/>
+                <property expression="$ctx:ERROR_DETAIL" name="Trace"/>
+                <property expression="$ctx:ERROR_EXCEPTION" name="exception"/>
+            </log>
+            <switch description="" source="get-property('ERROR_CODE')">
+                <case regex="101503">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="404"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection cannot be made"/>
+                </case>
+                <case regex="101504">
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="408"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error':'Connection timed out into suspension"/>
+                </case>
+                <default>
+                    <property name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+                    <property name="OUR_ERROR" scope="axis2" type="STRING" value="Error': Generic fault handler, code not specified"/>
+                </default>
+            </switch>
+            <payloadFactory media-type="json">
+                <format>{
+    "errorCode":"$1",
+    "errorMessage" : "$2",
+    "errorDetail" : "$3"
+}</format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('ERROR_CODE')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_EXCEPTION')"/>
+                    <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>
